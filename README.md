@@ -1,3 +1,1 @@
-# R
-
-# This folder will contain all my main R scripts
+# Main scripts that I have accumulated over the years that are a useful reference.
