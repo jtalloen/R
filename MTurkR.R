@@ -22,8 +22,7 @@ Pay$array <- str_replace(Pay$batch, "z", Pay[,3])
 
 library(MTurkR)
 
-credentials(keypair=c("AKIAIIWIJFZTUMLQ3PZQ","IsWtdkS6/kIFUXbu+hYkaME3Yff+SSzZrEJjX10A"))
-# credentials(keypair=c("AKIAJV2FWUCARJMCSIWQ","e8nOc7aCu7LIUQoerya9FvUuc7WSGYBMyIRkQei9"))
+credentials(keypair=c("XXXXXXXXXX","XXXXXXXXXX"))
 
 AccountBalance()
 
@@ -48,22 +47,7 @@ ContactWorker(subjects = a,
 
 
 library(MTurkR)
-credentials(keypair=c("AKIAIIWIJFZTUMLQ3PZQ","IsWtdkS6/kIFUXbu+hYkaME3Yff+SSzZrEJjX10A"))
-
-## Gretchen
-credentials(keypair=c("AKIAI3HP2HDEGLDGBFTQ","ajuG0/V8VqB7LoAPODJh1elXxcJX/46b63Vnm1R5"))
-
-## Luxi
-credentials(keypair=c("AKIAJEJMHJ4DI3UJN2PQ","cU1Y+URk1h0CjtdUeRvf6I/CgYBuUrdWYLut71Za"))
-
-
-## Ebru
-# credentials(keypair=c("AKIAJV2FWUCARJMCSIWQ","e8nOc7aCu7LIUQoerya9FvUuc7WSGYBMyIRkQei9"))
-## 
-
-## Barry
-# credentials(keypair=c("AKIAIJ34DFLFGLB7EGEA","9/kzVAA2FvUPjY1oeVy20JArfSNRm2Id61xmq4K8"))
-
+credentials(keypair=c("XXXXXXXXXX","XXXXXXXXXX"))
 
 AccountBalance()
 
@@ -97,13 +81,7 @@ write.csv(Pay, file = "Pred_Stock2_Comma.csv", row.names = FALSE)
 ###########################
 
 library(MTurkR)
-credentials(keypair=c("AKIAIIWIJFZTUMLQ3PZQ","IsWtdkS6/kIFUXbu+hYkaME3Yff+SSzZrEJjX10A"))
-
-## Gretchen
-credentials(keypair=c("AKIAI3HP2HDEGLDGBFTQ","ajuG0/V8VqB7LoAPODJh1elXxcJX/46b63Vnm1R5"))
-
-## Luxi
-credentials(keypair=c("AKIAJEJMHJ4DI3UJN2PQ","cU1Y+URk1h0CjtdUeRvf6I/CgYBuUrdWYLut71Za"))
+credentials(keypair=c("XXXXXXXXXX","XXXXXXXXXX"))
 
 
 qual  <- CreateQualificationType(name = "Work Done Before",
