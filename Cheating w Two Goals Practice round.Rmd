@@ -1,0 +1,742 @@
+---
+title: "Cheating with two Goals"
+author: "Joachim Talloen"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: 
+  pdf_document: 
+    keep_tex: true
+---
+
+
+```{r setup, include=F}
+pacman::p_load(lfe, tidyverse, stargazer, ggplot2, gmodels, pwr, tidyr, magrittr, dotwhisker, broom, car)
+
+knitr::opts_chunk$set(comment = NA, echo = F, results = 'asis', out.width = "70%", fig.align = "center",
+                      warning = F, message = F)
+
+knitr::opts_knit$set(root.dir = "C:/Users/joach/Box/Joe/Research/CMU/Dissertation/Cheating with ER/")
+
+```
+
+
+```{r,include = F}
+df <- read.csv("190808__Cheating_with_Two_Goals_Practice_Round.csv")
+
+df %<>%
+  mutate(Q47 = ifelse(is.na(Q47), 0, 1),
+         Q48 = ifelse(is.na(Q48), 0, 1),
+         bonus = ifelse(Q47 == 1, shtot, ifelse(Q48 == 1, sltot, 0.30)))
+
+with(df, CrossTable(cond))
+with(df, CrossTable(bonus))
+
+df1 <- df %>%
+  filter(., workerId != "" & V10 == 1 & !is.na(Q54)) 
+
+df1 %>%
+  filter(cond == 2) %>%
+  select(completeall) %>%
+  stargazer()
+
+
+df1 %>%
+  filter(cond == 2) %>%
+  with(., CrossTable(sh))
+
+```
+
+```{r}
+df1 %<>%
+  mutate(completeall = as.numeric(as.character(completeall)),
+         sh = as.numeric(as.character(sh)),
+         sl = as.numeric(as.character(sl)),
+         bad = as.numeric(as.character(bad)),
+         sh0 = as.numeric(as.character(sh0)),
+         sh1 = as.numeric(as.character(sh1)),
+         sh2 = as.numeric(as.character(sh2)),
+         sh3 = as.numeric(as.character(sh3)),
+         sh4 = as.numeric(as.character(sh4)),
+         sh5 = as.numeric(as.character(sh5)),
+         sl0 = as.numeric(as.character(sl0)),
+         sl1 = as.numeric(as.character(sl1)),
+         sl2 = as.numeric(as.character(sl2)),
+         sl3 = as.numeric(as.character(sl3)),
+         sl4 = as.numeric(as.character(sl4)),
+         sl5 = as.numeric(as.character(sl5)),
+         complete0 = as.numeric(as.character(complete0)),
+         complete1 = as.numeric(as.character(complete1)),
+         complete2 = as.numeric(as.character(complete2)),
+         complete3 = as.numeric(as.character(complete3)),
+         complete4 = as.numeric(as.character(complete4)),
+         complete5 = as.numeric(as.character(complete5)),
+         X0.cheatALL = as.numeric(as.character(X0.cheatALL)),
+         X0.cheatNALL = as.numeric(as.character(X0.cheatNALL)),
+         X1.cheatALL = as.numeric(as.character(X1.cheatALL)),
+         X1.cheatNALL = as.numeric(as.character(X1.cheatNALL)),
+         X2.cheatALL = as.numeric(as.character(X2.cheatALL)),
+         X2.cheatNALL = as.numeric(as.character(X2.cheatNALL)),
+         X3.cheatALL = as.numeric(as.character(X3.cheatALL)),
+         X3.cheatNALL = as.numeric(as.character(X3.cheatNALL)),
+         X4.cheatALL = as.numeric(as.character(X4.cheatALL)),
+         X4.cheatNALL = as.numeric(as.character(X4.cheatNALL)),
+         X5.cheatALL = as.numeric(as.character(X5.cheatALL)),
+         X5.cheatNALL = as.numeric(as.character(X5.cheatNALL)),
+         cond = as.factor(cond))
+
+## so cond = 0 is assymetric
+## cond = 1 is easy
+## cond = 2 is hard
+
+```
+
+# Cheating Results
+## Descriptives and Between Subject Analysis
+```{r}
+
+df1 %<>%
+  mutate(cheatALL = select(., X2.cheatALL, X3.cheatALL, X4.cheatALL, X5.cheatALL) %>% rowSums(na.rm = T),
+         cheatALL1 = select(., X2.cheatALL, X3.cheatALL, X4.cheatALL) %>% rowSums(na.rm = T),
+         cheat = ifelse(cheatALL > 0, 1, 0),
+         cheatnever = ifelse(cheatALL == 0, 1, 0))
+
+
+```
+
+```{r}
+df1 %>%
+  filter(cond == 0) %>%
+  select(cheat, cheatnever, cheatALL,X0.cheatALL, X1.cheatALL, X2.cheatALL, X3.cheatALL, X4.cheatALL, X5.cheatALL) %>%
+  stargazer(., type = "latex", header = F, title= "Cheating Sum Stats for Two Goals Condition")
+```
+```{r}
+df1 %>%
+  filter(cond == 1) %>%
+  select(cheat, cheatnever, cheatALL, X0.cheatALL, X1.cheatALL, X2.cheatALL, X3.cheatALL, X4.cheatALL, X5.cheatALL) %>%
+  stargazer(., type = "latex", header = F, title= "Cheating Sum Stats for Easy Condition")
+
+```
+
+
+```{r}
+df1 %>%
+  filter(cond == 2) %>%
+  select(cheat, cheatnever, cheatALL, X0.cheatALL, X1.cheatALL, X2.cheatALL, X3.cheatALL, X4.cheatALL, X5.cheatALL) %>%
+  stargazer(., type = "latex", header = F, title= "Cheating Sum Stats for Hard Condition")
+
+```
+
+
+
+```{r}
+lmch <- df1 %>%
+  lm(cheat ~ cond, data = .)
+
+lmchb <- df1 %>%
+  glm(cheat ~ cond, data = ., family = "binomial")
+
+lmall <- df1 %>%
+  lm(cheatALL ~ cond, data = .)
+
+lmall1 <- df1 %>%
+  lm(cheatALL1 ~ cond, data = .)
+
+lm0 <- df1 %>%
+  lm(X0.cheatALL ~ cond, data = .)
+
+lm1 <- df1 %>%
+  lm(X1.cheatALL ~ cond, data = .)
+
+lm2 <- df1 %>%
+  lm(X2.cheatALL ~ cond, data = .)
+
+lm3 <- df1 %>%
+  lm(X3.cheatALL ~ cond, data = .)
+
+lm4 <- df1 %>%
+  lm(X4.cheatALL ~ cond, data = .)
+
+lm5 <- df1 %>%
+  lm(X5.cheatALL ~ cond, data = .)
+
+stargazer(lmch, lmchb, lmall, header = F, type = "latex",
+          title = "Main Regressions for Cheating DVs",
+          omit.stat = c("f", "ser", "ll", "aic"),
+          covariate.labels = c("Easy", "Hard"))
+
+stargazer(lm0, lm1, lm2, lm3, lm4, lm5, header = F, type = "latex",
+          title = "Main Regressions for Cheating DVs",
+          omit.stat = c("f", "ser", "ll", "aic"),
+          covariate.labels = c("Easy", "Hard"))
+```
+\clearpage 
+\newpage
+## Data Visualization
+
+
+```{r}
+
+dfcheat <- df1 %>% 
+  gather(., session, cheat, X0.cheatALL, X1.cheatALL, X2.cheatALL, X3.cheatALL, X4.cheatALL, X5.cheatALL, factor_key = T)
+
+dfcheat %>%
+  aggregate(cheat ~ session + cond, data = ., mean) %>%
+  ggplot(., aes(x = as.numeric(session), y = as.numeric(cheat), color = factor(cond))) + 
+  geom_point() +
+  scale_color_discrete(name = "Condition", labels = c("Two Goals", "Easy", "Hard")) +
+  ylab("Mean Number of Encryptions Cheated") + 
+  xlab("Session") +
+  scale_x_continuous(breaks = seq(1, 6, 1)) + 
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+  ggtitle("Mean Number of Encryptions Cheated by Session") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+
+dfcheatN <- df1 %>% 
+  gather(., session, cheat, X0.cheatNALL, X1.cheatNALL, X2.cheatNALL, X3.cheatNALL, X4.cheatNALL, X5.cheatNALL, factor_key = T)
+
+dfcheatN %>%
+  aggregate(cheat ~ session + cond, data = ., mean) %>%
+  ggplot(., aes(x = as.numeric(session), y = as.numeric(cheat), color = factor(cond))) + 
+  geom_point() +
+  scale_color_discrete(name = "Condition", labels = c("Two Goals", "Easy", "Hard")) +
+  ylab("Mean Number of Encryptions Cheated") + 
+  xlab("Session") +
+  scale_x_continuous(breaks = seq(1, 6, 1)) + 
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+  ggtitle("Mean Number of Characters Cheated by Session") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+df1 %>%
+  ggplot(., aes(x = cheatALL)) +
+  geom_histogram(aes(fill = as.factor(cond)), bins = 100) +
+  scale_y_continuous(limits = c(0, 121), expand = c(0,0)) +
+  scale_fill_discrete(name = "Condition", labels = c("Two Goals", "Easy", "Hard")) +
+  xlab("Total Number of Encryptions Cheated") + 
+  ggtitle("Histogram of Total Number of Encryptions Cheated") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+```
+\newpage
+## Within Subject Analysis
+```{r}
+lmctrunc2 <- dfcheat %>%
+  filter(session == "X3.cheatALL" | session == "X2.cheatALL") %>%
+  felm(cheat ~ cond | 0 | 0 | workerId, data = .)
+
+lmctrunc4 <- dfcheat %>%
+  filter(session == "X3.cheatALL" | session == "X2.cheatALL" | session == "X4.cheatALL" | session == "X5.cheatALL") %>%
+  felm(cheat ~ cond | 0 | 0 | workerId, data = .)
+
+
+lmc <- dfcheat %>%
+  filter(session == "X3.cheatALL" | session == "X2.cheatALL" | session == "X4.cheatALL" | session == "X5.cheatALL") %>%
+  felm(cheat ~ cond | 0 | 0 | workerId, data = .)
+
+lmcr <- dfcheat %>%
+  filter(session == "X3.cheatALL" | session == "X2.cheatALL" | session == "X4.cheatALL" | session == "X5.cheatALL") %>%
+  felm(cheat ~ cond + as.numeric(session) | 0 | 0 | workerId, data = .)
+
+lmcint <- dfcheat %>%
+  filter(session == "X3.cheatALL" | session == "X2.cheatALL" | session == "X4.cheatALL" | session == "X5.cheatALL") %>%
+  felm(cheat ~ cond*as.numeric(session) | 0 | 0 | workerId, data = .)
+
+stargazer(lmc, lmcr, lmcint, type = "latex", header = F, 
+          title = "Within-Subject Regression Results for Number of Cheated Encryptions Across Sessions", 
+          omit.stat = "ser",
+          add.lines = list("", c("Clustered SE:", "Y", "Y", "Y"), "", "\\hline"),
+          covariate.labels = c("Easy", "Hard", "Session", "Easy x Session", "Hard x Session"))
+
+```
+
+```{r}
+lmc <- dfcheatN %>%
+  filter(session == "X3.cheatNALL" | session == "X2.cheatNALL" | session == "X4.cheatNALL" | session == "X5.cheatNALL") %>%
+  felm(cheat ~ cond | 0 | 0 | workerId, data = .)
+
+lmcr <- dfcheatN %>%
+  filter(session == "X3.cheatNALL" | session == "X2.cheatNALL" | session == "X4.cheatNALL" | session == "X5.cheatNALL") %>%
+  felm(cheat ~ cond + as.numeric(session) | 0 | 0 | workerId, data = .)
+
+lmcint <- dfcheatN %>%
+  filter(session == "X3.cheatNALL" | session == "X2.cheatNALL" | session == "X4.cheatNALL" | session == "X5.cheatNALL") %>%
+  felm(cheat ~ cond*as.numeric(session) | 0 | 0 | workerId, data = .)
+
+stargazer(lmc, lmcr, lmcint, type = "latex", header = F, 
+          title = "Within-Subject Regression Results for Number of Cheated Encryptions Across Sessions", 
+          omit.stat = "ser",
+          add.lines = list("", c("Clustered SE:", "Y", "Y", "Y"), "", "\\hline"),
+          covariate.labels = c("Easy", "Hard", "Session", "Easy x Session", "Hard x Session"))
+
+```
+
+
+\clearpage
+\newpage
+# Honest Results
+## Descriptives and Between Subject Analysis
+
+```{r}
+df1 %<>%
+  mutate(completeall = select(., complete2, complete3, complete4, complete5) %>% rowSums(na.rm = T),
+         honestALL = completeall - cheatALL,
+         honest0 = complete0 - X0.cheatALL,
+         honest1 = complete1 - X1.cheatALL,
+         honest2 = complete2 - X2.cheatALL,
+         honest3 = complete3 - X3.cheatALL,
+         honest4 = complete4 - X4.cheatALL,
+         honest5 = complete5 - X5.cheatALL,
+         neverhonest = ifelse(honestALL == 0, 1, 0),
+         honest = ifelse(honestALL > 0, 1, 0),
+         sl0h = ifelse(honest0 > 0, 1, 0),
+         sl1h = ifelse(honest1 > 0, 1, 0),
+         sl2h = ifelse(honest2 > 0, 1, 0),
+         sl3h = ifelse(honest3 > 0, 1, 0),
+         sl4h = ifelse(honest4 > 0, 1, 0),
+         sl5h = ifelse(honest5 > 0, 1, 0),
+         sh0h = ifelse(honest0 > 7, 1, 0),
+         sh1h = ifelse(honest1 > 7, 1, 0),
+         sh2h = ifelse(honest2 > 7, 1, 0),
+         sh3h = ifelse(honest3 > 7, 1, 0),
+         sh4h = ifelse(honest4 > 7, 1, 0),
+         sh5h = ifelse(honest5 > 7, 1, 0))
+
+df1 %<>%
+  mutate(honestm = select(., honest2, honest3, honest4, honest5) %>% rowMeans(na.rm = T))
+```
+
+```{r}
+df1 %>%
+  filter(cond == 0) %>%
+  select(honest, neverhonest, honestALL, honestm, honest1, honest2, honest3, honest4, honest5, sl0h, sl1h, sl2h, sl3h, sl4h, sl5h, sh0h, sh1h, sh2h, sh3h, sh4h, sh5h) %>%
+  stargazer(., type = "latex", header = F, title= "Honest Sum Stats for Two Goals Condition")
+
+```
+
+```{r}
+df1 %>%
+  filter(cond == 1) %>%
+  select(honest, neverhonest, honestALL, honestm, honest1, honest2, honest3, honest4, honest5, sl0h, sl1h, sl2h, sl3h, sl4h, sl5h, sh0h, sh1h, sh2h, sh3h, sh4h, sh5h) %>%
+  stargazer(., type = "latex", header = F, title= "Honest Sum Stats for Easy Condition")
+
+```
+
+
+```{r}
+df1 %>%
+  filter(cond == 2) %>%
+  select(honest, neverhonest, honestALL, honestm, honest1, honest2, honest3, honest4, honest5, sl0h, sl1h, sl2h, sl3h, sl4h, sl5h, sh0h, sh1h, sh2h, sh3h, sh4h, sh5h) %>%
+  stargazer(., type = "latex", header = F, title= "Honest Sum Stats for Hard Condition")
+
+
+```
+
+
+```{r}
+lmch <- df1 %>%
+  lm(honest ~ cond, data = .)
+
+lmchb <- df1 %>%
+  glm(honest ~ cond, data = ., family = "binomial")
+
+
+lmall <- df1 %>%
+  lm(honestALL ~ cond, data = .)
+
+lm0 <- df1 %>%
+  lm(honest0 ~ cond, data = .)
+
+lm1 <- df1 %>%
+  lm(honest1 ~ cond, data = .)
+
+lm2<- df1 %>%
+  lm(honest2 ~ cond, data = .)
+
+lm3 <- df1 %>%
+  lm(honest3 ~ cond, data = .)
+
+lm4 <- df1 %>%
+  lm(honest4 ~ cond, data = .)
+
+lm5 <- df1 %>%
+  lm(honest5 ~ cond, data = .)
+
+stargazer(lmch, lmchb, lmall, header = F, type = "latex",
+          title = "Main Regressions for Honest DVs",
+          omit.stat = c("f", "ser", "ll", "aic"),
+          covariate.labels = c("Easy", "Hard"))
+
+
+stargazer(lm0, lm1, lm2, lm3, lm4, lm5, header = F, type = "latex",
+          title = "Main Regressions for Honest DVs",
+          omit.stat = c("f", "ser", "ll", "aic"),
+          covariate.labels = c("Easy", "Hard"))
+```
+
+
+```{r}
+df1 %<>% 
+  mutate(shm = sh/5,
+         slm = sl/5)
+lmh <- df1 %>%
+  lm(shm ~ cond, data = .)
+
+lmh0 <- df1 %>%
+  lm(sh0h ~ cond, data = .)
+
+lmh1 <- df1 %>%
+  lm(sh1h ~ cond, data = .)
+
+lmh2 <- df1 %>%
+  lm(sh2h ~ cond, data = .)
+
+lmh3 <- df1 %>%
+  lm(sh3h ~ cond, data = .)
+
+lmh4 <- df1 %>%
+  lm(sh4h ~ cond, data = .)
+
+lmh5 <- df1 %>%
+  lm(sh5h ~ cond, data = .)
+
+lml0 <- df1 %>%
+  lm(sl0h ~ cond, data = .)
+
+lml1 <- df1 %>%
+  lm(sl1h ~ cond, data = .)
+
+lml2 <- df1 %>%
+  lm(sl2h ~ cond, data = .)
+
+lml3 <- df1 %>%
+  lm(sl3h ~ cond, data = .)
+
+lml4 <- df1 %>%
+  lm(sl4h ~ cond, data = .)
+
+lml5 <- df1 %>%
+  lm(sl5h ~ cond, data = .)
+
+lml <- df1 %>%
+  lm(slm ~ cond, data = .)
+
+
+stargazer(lmh, lmh0, lmh1, lmh2, lmh3, lmh4, lmh5, header = F, type = "latex",
+          title = "Proportion Meeting High Target for Honest DVs",
+          omit.stat = c("f", "ser", "ll", "aic"),
+          covariate.labels = c("Easy", "Hard"))
+
+stargazer(lml, lml0, lml1, lml2, lml3, lml4, lml5, header = F, type = "latex",
+          title = "Proportion Meeting Low Target for Honest DVs",
+          omit.stat = c("f", "ser", "ll", "aic"),
+          covariate.labels = c("Easy", "Hard"))
+
+```
+
+
+\clearpage
+\newpage
+## Data Visualization
+
+```{r}
+dfhonest <- df1 %>% 
+  gather(., session, honest, honest0, honest1, honest2, honest3, honest4, honest5, factor_key = T)
+
+dfhonest %>%
+  aggregate(honest ~ session + cond, data = ., mean) %>%
+  ggplot(., aes(x = as.numeric(session), y = as.numeric(honest), color = factor(cond))) + 
+  geom_point() +
+  scale_color_discrete(name = "Condition", labels = c("Two Goals", "Easy", "Hard")) +
+  ylab("Mean Number of Honest Encryptions") + 
+  xlab("Session") +
+  scale_x_continuous(breaks = seq(1, 6, 1)) + 
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+  ggtitle("Mean Number of Honest Encryptions by Session") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+dfsh <- df1 %>% 
+  gather(., session, sh, sh0, sh1, sh2, sh3, sh4, sh5, factor_key = T)
+
+dfsh %>%
+  aggregate(sh ~ session + cond, data = ., mean) %>%
+  ggplot(., aes(x = as.numeric(session), y = as.numeric(sh), color = factor(cond))) + 
+  geom_point() +
+  scale_color_discrete(name = "Condition", labels = c("Two Goals", "Easy", "Hard")) +
+  ylab("Average Proportion") + 
+  xlab("Session") +
+  scale_x_continuous(breaks = seq(1, 6, 1)) + 
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+  ggtitle("Average Proportion Successfully Met Higher Goal with Honest Encryptions by Session") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+dfsl <- df1 %>% 
+  gather(., session, sl, sl0, sl1, sl2, sl3, sl4, sl5, factor_key = T)
+
+dfsl %>%
+  aggregate(sl ~ session + cond, data = ., mean) %>%
+  ggplot(., aes(x = as.numeric(session), y = as.numeric(sl), color = factor(cond))) + 
+  geom_point() +
+  scale_color_discrete(name = "Condition", labels = c("Two Goals", "Easy", "Hard")) +
+  ylab("Average Proportion") + 
+  xlab("Session") +
+  scale_x_continuous(breaks = seq(1, 6, 1)) + 
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+  ggtitle("Average Proportion Successfully Met Lower Goal with Honest Encryptions by Session") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+
+df1 %>%
+  ggplot(., aes(x = honestALL)) +
+  geom_histogram(aes(fill = as.factor(cond)), bins = 100) +
+  scale_y_continuous(limits = c(0, 30), expand = c(0,0), breaks = seq(0,30, 5)) +
+  scale_fill_discrete(name = "Condition", labels = c("Two Goals", "Easy", "Hard")) +
+  xlab("Total Number of Honest Encryptions") + 
+  ggtitle("Histogram of Total Number of Honest Encryptions") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+```{r}
+
+df1 %>%
+  ggplot(., aes(x = honestm)) +
+  geom_histogram(aes(fill = as.factor(cond)), bins = 100) +
+  scale_y_continuous(limits = c(0, 27), expand = c(0,0), breaks = seq(0,30, 5)) +
+  scale_fill_discrete(name = "Condition", labels = c("Two Goals", "Easy", "Hard")) +
+  xlab("Mean Number of Honest Encryptions in Each Session") + 
+  ggtitle("Histogram of Mean Number of Honest Encryptions in Each Session") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+\clearpage  
+## Within Subject Analysis
+```{r}
+lmc <- dfhonest %>%
+  filter(session == "honest2" | session == "honest3" | session == "honest4" | session == "honest5") %>%
+  felm(honest ~ factor(cond) | 0 | 0 | workerId, data = .)
+
+lmcr <- dfhonest %>%
+  filter(session == "honest2" | session == "honest3" | session == "honest4" | session == "honest5") %>%
+  felm(honest ~ factor(cond) + as.numeric(session) | 0 | 0 | workerId, data = .)
+
+lmcint <- dfhonest %>%
+  filter(session == "honest2" | session == "honest3" | session == "honest4" | session == "honest5") %>%
+  felm(honest ~ factor(cond)*as.numeric(session) | 0 | 0 | workerId, data = .)
+
+stargazer(lmc, lmcr, lmcint, type = "latex", header = F, 
+          title = "Within-Subject Regression Results for Number of Honest Encryptions Across Sessions", 
+          omit.stat = "ser",
+          add.lines = list("", c("Clustered SE:", "Y", "Y", "Y"), "", "\\hline"),
+          covariate.labels = c("Easy", "Hard", "Session", "Easy x Session", "Hard x Session"))
+
+```
+
+```{r}
+lmc <- dfsh %>%
+  filter(session == "sh2" | session == "sh3" | session == "sh4" | session == "sh5") %>%
+  felm(sh ~ factor(cond) | 0 | 0 | workerId, data = .)
+
+lmcr <- dfsh %>%
+  filter(session == "sh2" | session == "sh3" | session == "sh4" | session == "sh5") %>%
+  felm(sh ~ factor(cond) + as.numeric(session) | 0 | 0 | workerId, data = .)
+
+lmcint <- dfsh %>%
+  filter(session == "sh2" | session == "sh3" | session == "sh4" | session == "sh5") %>%
+  felm(sh ~ factor(cond)*as.numeric(session) | 0 | 0 | workerId, data = .)
+
+stargazer(lmc, lmcr, lmcint, type = "latex", header = F, 
+          title = "Within-Subject Regression Results for Proportion of Higher Goals Met with Honest Encryptions Across Sessions", 
+          omit.stat = "ser",
+          add.lines = list("", c("Clustered SE:", "Y", "Y", "Y"), "", "\\hline"),
+          covariate.labels = c("Easy", "Hard", "Session", "Easy x Session", "Hard x Session"))
+
+```
+
+```{r}
+lmc <- dfsl %>%
+  filter(session == "sl2" | session == "sl3" | session == "sl4" | session == "sl5") %>%
+  felm(sl ~ factor(cond) | 0 | 0 | workerId, data = .)
+
+lmcr <- dfsl %>%
+  filter(session == "sl2" | session == "sl3" | session == "sl4" | session == "sl5") %>%
+  felm(sl ~ factor(cond) + as.numeric(session) | 0 | 0 | workerId, data = .)
+
+lmcint <- dfsl %>%
+  filter(session == "sl2" | session == "sl3" | session == "sl4" | session == "sl5") %>%
+  felm(sl ~ factor(cond)*as.numeric(session) | 0 | 0 | workerId, data = .)
+
+stargazer(lmc, lmcr, lmcint, type = "latex", header = F, 
+          title = "Within-Subject Regression Results for Proportion of Higher Goals Met with Honest Encryptions Across Sessions", 
+          omit.stat = "ser",
+          add.lines = list("", c("Clustered SE:", "Y", "Y", "Y"), "", "\\hline"),
+          covariate.labels = c("Easy", "Hard", "Session", "Easy x Session", "Hard x Session"))
+
+```
+
+\clearpage
+\newpage
+# Follow Up Questions
+
+```{r}
+df1 %<>%
+  mutate(Q43 = as.numeric(as.character(Q43)),
+         Q44 = as.numeric(as.character(Q44)),
+         Q45 = as.numeric(as.character(Q45)),
+         Q82_1 = as.numeric(as.character(Q46_1)),
+         Q82_2 = as.numeric(as.character(Q46_2)),
+         Q82_3 = as.numeric(as.character(Q46_3)))
+```
+
+
+```{r}
+df1 %>%
+  aggregate(Q43 ~ cond, data = ., mean) %>%
+  ggplot(., aes(x = cond, y = Q43)) +
+  geom_bar(stat = "identity", fill = "salmon") + 
+  scale_y_continuous(limits = c(0, 7), breaks = seq(0, 7, 1)) +
+  scale_x_discrete(labels = c("Two Goals", "Easy", "Hard"))+ 
+  theme(aspect.ratio = 1.2) +
+  labs(y = "Happy",
+       x = "Condition")
+```
+
+```{r}
+df1 %>%
+  aggregate(Q44 ~ cond, data = ., mean) %>%
+  ggplot(., aes(x = cond, y = Q44)) +
+  geom_bar(stat = "identity", fill = "salmon") + 
+  scale_y_continuous(limits = c(0, 7), breaks = seq(0, 7, 1)) +
+  scale_x_discrete(labels = c("Two Goals", "Easy", "Hard"))+ 
+  theme(aspect.ratio = 1.2) +
+  labs(y = "Like",
+       x = "Condition")
+```
+
+
+```{r}
+df1 %>%
+  aggregate(Q45 ~ cond, data = ., mean) %>%
+  ggplot(., aes(x = cond, y = Q45)) +
+  geom_bar(stat = "identity", fill = "salmon") + 
+  scale_y_continuous(limits = c(0, 7), breaks = seq(0, 7, 1)) +
+  scale_x_discrete(labels = c("Two Goals", "Easy", "Hard"))+ 
+  theme(aspect.ratio = 1.2) +
+  labs(y = "Likely to Return",
+       x = "Condition")
+```
+
+
+
+```{r, include = F}
+df1 %>%
+  aggregate(Q46_1 ~ cond, data = ., mean) %>%
+  ggplot(., aes(x = cond, y = Q46_1)) +
+  geom_bar(stat = "identity", fill = "salmon") +
+  scale_y_continuous(limits = c(0, 3), breaks = seq(0, 3, 1)) +
+  scale_x_discrete(labels = c("Two Goals", "Easy", "Hard"))+ 
+  theme(aspect.ratio = 1.2) +
+  labs(y = "Mean Rank of Two Goals",
+       x = "Condition")
+```
+
+
+```{r, include = F}
+df1 %>%
+  aggregate(Q46_2 ~ cond, data = ., mean) %>%
+  ggplot(., aes(x = cond, y = Q46_2)) +
+  geom_bar(stat = "identity", fill = "salmon") +
+  scale_y_continuous(limits = c(0, 3), breaks = seq(0, 3, 1)) +
+  scale_x_discrete(labels = c("Two Goals", "Easy", "Hard"))+ 
+  theme(aspect.ratio = 1.2) +
+  labs(y = "Mean Rank of Easy",
+       x = "Condition")
+```
+
+
+```{r, include = F}
+df1 %>%
+  aggregate(Q46_3 ~ cond, data = ., mean) %>%
+  ggplot(., aes(x = cond, y = Q46_3)) +
+  geom_bar(stat = "identity", fill = "salmon") +
+  scale_y_continuous(limits = c(0, 3), breaks = seq(0, 3, 1)) +
+  scale_x_discrete(labels = c("Two Goals", "Easy", "Hard"))+ 
+  theme(aspect.ratio = 1.2) +
+  labs(y = "Mean Rank of Hard",
+       x = "Condition")
+```
+
+
+```{r}
+df1 %>% 
+  gather(key, value, Q46_1, Q46_2, Q46_3) %>%
+  ggplot(.) + 
+  geom_bar(aes(x = key, y = value), stat = "summary", fun.y = "mean", fill = "salmon") + 
+  scale_x_discrete(labels = c("Two Goals", "Easy", "Hard")) + 
+  labs(y = "Mean Rank",
+       x = "Item") + 
+  scale_y_continuous(limits = c(0, 3), breaks = seq(0, 3, 1)) +
+  theme(aspect.ratio = 1.2)
+
+
+  
+  
+```
+
+
+```{r}
+lmhappy <- lm(Q43 ~ cond, data = df1)
+lmlike <- lm(Q44 ~ cond, data = df1)
+lmlikely <- lm(Q45 ~ cond, data = df1)
+lmrank1 <- lm(Q46_1 ~ cond, data = df1)
+lmrank2 <- lm(Q46_2 ~ cond, data = df1)
+lmrank3 <- lm(Q46_3 ~ cond, data = df1)
+
+
+stargazer(lmhappy, lmlike, lmlikely, lmrank1, lmrank2, lmrank3, header = F, type = "latex",
+          title = "Differences in Ratings Across Conditions",
+          omit.stat = c("f", "ser"), 
+          covariate.labels = c("Easy", "Hard"),
+          dep.var.labels = c("Happy", "Like", "Likely to Return", "Two Goals Rank", "Easy Rank", "Hard Rank"))
+
+
+```
+
+
+```{r}
+what <- df1 %>% 
+  gather(key, value, Q46_1, Q46_2, Q46_3) %>%
+  mutate(key = ifelse(key == "Q46_3", 2, ifelse(key == "Q46_2", 1, 0))) %>%
+  arrange(workerId)
+
+what %>%
+  felm(value ~ factor(key) | 0 | 0 | workerId, data = .) %>%
+  stargazer(header = F, type = 'latex',   covariate.labels = c("Easy", "Hard"), omit.stat = c("f", "ser"),
+            add.lines = list("", c("Clustered SE:", "Y"), "", "\\hline"),
+            dep.var.labels = c("Mean Rank"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
